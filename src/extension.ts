@@ -4,7 +4,9 @@ import * as fs from "fs";
 import * as path from "path";
 import * as mkdirp from "mkdirp";
 import { snakeCase } from "change-case-all";
-import { findSpecSymbolByPosition, findSymbolByName, findSymbolByPosition, parseClassFile, parseSpecFile, findSpecBySymbol, generateSpecForSymbol, getRange, generateSpecForClass } from "./parser";
+import { parseClassFile, parseSpecFile } from "./parser";
+import { generateSpecForSymbol, generateSpecForClass } from "./generator";
+import { findSpecSymbolByPosition, findSymbolByName, findSymbolByPosition, findSpecBySymbol, getRange } from "./utils";
 
 async function openFile(fileName: string) {
 	return vscode.workspace.openTextDocument(fileName);
