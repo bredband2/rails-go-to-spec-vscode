@@ -70,12 +70,19 @@ function isViewFile(file: string): boolean {
 	return viewRegex.test(file);
 }
 
+function isRakeFile(file: string): boolean {
+	const rakeRegex = /.rake$/;
+	return rakeRegex.test(file);
+}
+
 function addSpecExtension(file: string): string {
 	if (isViewFile(file)) {
 		return file
 			.replace(".erb", ".erb_spec.rb")
 			.replace(".haml", ".haml_spec.rb")
 			.replace(".slim", ".slim_spec.rb");
+	} else if (isRakeFile(file)) {
+		return file + "._spec.rb";
 	} else {
 		return file.replace(".rb", "_spec.rb");
 	}
@@ -86,5 +93,6 @@ function removeSpecExtension(file: string): string {
 		.replace(".erb_spec.rb", ".erb")
 		.replace(".haml_spec.rb", ".haml")
 		.replace(".slim_spec.rb", ".slim")
+		.replace(".rake._spec.rb", ".rake")
 		.replace("_spec.rb", ".rb");
 }
