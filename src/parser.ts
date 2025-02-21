@@ -59,33 +59,55 @@ export async function parseClassFile(src: vscode.TextDocument): Promise<ClassCon
         if (typeDefinition.includes("<")) {
             superType = typeDefinition.substring(typeDefinition.indexOf("<") + 1).trim();
         } else if (typeDefinition.startsWith("module ")) {
-            superType = "module"
+            superType = "module";
         } else if (typeDefinition.startsWith("class ")) {
-            superType = "class"
+            superType = "class";
         }
     }
-
-    //const expectedClassName = srcUri.path.slice(srcUri.path.lastIndexOf("/") + 1, srcUri.path.indexOf(".", srcUri.path.lastIndexOf("/"))).replace(/_/g, "")
-
 
     return { symbols, methods, publicMethods, superType, typeName, fullTypeName, expectedTypeName };
 }
 
 export async function parseSpecFile(src: vscode.TextDocument): Promise<RSpecContext> {
-    const lines = src.getText()
-        .split("\n");
+    const lines = src.getText().split("\n");
 
-    const symbols = lines
-        .map((line, lineNo) => {
-            const m = line.match(/(\s*)describe\s+"([#.])(\w+[\?\!]?)"\s+do(\s*)/);
-            if (m) {
-                const name = m[3];
-                const kind = m[2] == "." ? RSpecSymbolKind.ClassMethodSpec : RSpecSymbolKind.InstanceMethodSpec;
-                const range = new vscode.Range(new vscode.Position(lineNo, m[1].length), new vscode.Position(lineNo, line.length - m[4].length));
-                return new RSpecSymbol(name, kind, range);
+    interface Block {
+        line: string;
+        range: vscode.Range;
+        parent: Block | undefined;
+        children: Block[];
+    }
+
+    const blocks = [] as Block[];
+    const stack = [] as Block[];
+    lines.forEach((line, lineNo) => {
+        const parts = line.match(/(\s*)\bdo\b(\s*\|\w+.*\|)?\s*$/);
+        if (parts) {
+            const parent = stack[stack.length];
+            const range = new vscode.Range(new vscode.Position(lineNo, 0), new vscode.Position(lineNo, line.length));
+            const block = { line, range, parent, children: [] };
+            blocks.push(block);
+            stack.push(block);
+            if (parent) {
+                parent.children.push(block);
             }
-            return undefined;
-        })
-        .filter(s => !!s);
+        } else if (line.trim() == "end") {
+            const block = stack.pop();
+            if (block) {
+                block.range = new vscode.Range(block.range.start, new vscode.Position(lineNo, line.length));
+            }
+        }
+    });
+
+    const symbols = blocks.map(block => {
+        const m = block.line.match(/(\s*)describe\s+"([#.])(\w+[\?\!]?)"\s+do(\s*)/);
+
+        if (m) {
+            const name = m[3];
+            const kind = m[2] == "." ? RSpecSymbolKind.ClassMethodSpec : RSpecSymbolKind.InstanceMethodSpec;
+            return new RSpecSymbol(name, kind, block.range);
+        }
+        return undefined;
+    }).filter(s => !!s) as RSpecSymbol[];
     return { symbols };
 }
