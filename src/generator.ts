@@ -27,11 +27,11 @@ function generateInteractorSpec(context: ClassContext): string | undefined {
         console.error("No typeName for Interactor found in context", context);
         return undefined;
     }
-    const className = snakeCase(context.typeName);
+    const fullTypeName = context.fullTypeName;
     const classNameSnakeCase = snakeCase(context.typeName);
     const publicMethods = context.publicMethods;
     return `require "spec_helper"
-describe ${className} do
+describe ${fullTypeName} do
   include InteractorHelpers
 
   Given(:listener){InteractorHelpers::ResponseSpy.new}
@@ -54,7 +54,7 @@ describe ${className} do
     end
   end
 
-${publicMethods.filter((m => m.name != "perform")).map((m) => getSpecDefinition(m)).join("\n")}
+${publicMethods.filter((m => m.name != "perform" && m.name != "request")).map((m) => getSpecDefinition(m)).join("\n")}
 end
 `;
 }
@@ -68,13 +68,13 @@ export function generateSpecForClass(context: ClassContext): string | undefined 
             return undefined;
         }
 
-        const className = snakeCase(context.typeName);
+        const fullTypeName = context.fullTypeName;
         const classNameSnakeCase = snakeCase(context.typeName);
         const publicMethods = context.publicMethods;
 
         return `require "spec_helper"
 
-describe ${className} do
+describe ${fullTypeName} do
   subject{described_class.new}
 
 ${publicMethods.map((m) => getSpecDefinition(m)).join("\n\n")}
